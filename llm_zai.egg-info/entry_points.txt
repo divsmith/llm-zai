@@ -1,0 +1,2 @@
+[llm]
+zai = llm_zai:register_models
