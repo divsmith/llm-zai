@@ -1,9 +1,0 @@
-LICENSE
-README.md
-pyproject.toml
-llm_zai.egg-info/PKG-INFO
-llm_zai.egg-info/SOURCES.txt
-llm_zai.egg-info/dependency_links.txt
-llm_zai.egg-info/entry_points.txt
-llm_zai.egg-info/requires.txt
-llm_zai.egg-info/top_level.txt

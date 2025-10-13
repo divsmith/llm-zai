@@ -4,9 +4,9 @@ Version: 0.1.0
 Summary: LLM plugin for Z.ai's GLM models
 Author: LLM Z.ai Plugin Contributors
 License: Apache-2.0
-Project-URL: Homepage, https://github.com/simonw/llm-zai
-Project-URL: Repository, https://github.com/simonw/llm-zai
-Project-URL: Issues, https://github.com/simonw/llm-zai/issues
+Project-URL: Homepage, https://github.com/divsmith/llm-zai
+Project-URL: Repository, https://github.com/divsmith/llm-zai
+Project-URL: Issues, https://github.com/divsmith/llm-zai/issues
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: Apache Software License
@@ -48,13 +48,39 @@ pip install llm-zai
 
 ## Configuration
 
-You'll need a Z.ai API key. Set it as an environment variable:
+You'll need a Z.ai API key. You can get an API key by signing up at [Z.ai](https://z.ai/).
+
+### Method 1: Use LLM's Native Secrets Management (Recommended)
+
+Store your API key using LLM's built-in secrets management:
+
+```bash
+llm keys set zai
+# Prompt will ask for your API key
+```
+
+This method is more secure as the key is stored encrypted and only used by the LLM tool.
+
+### Method 2: Environment Variable (Fallback)
+
+As a fallback, you can still use an environment variable:
 
 ```bash
 export ZAI_API_KEY="your-api-key-here"
 ```
 
-You can get an API key by signing up at [Z.ai](https://z.ai/).
+### Method 3: Pass Key Directly
+
+Or pass the key directly with each request:
+
+```bash
+llm --key "your-api-key-here" -m zai-glm-4.6 "Your prompt here"
+```
+
+**Priority Order**: The plugin will look for API keys in this order:
+1. Key passed with `--key` option
+2. Key stored with `llm keys set zai`
+3. `ZAI_API_KEY` environment variable
 
 ## Supported Models
 
@@ -91,15 +117,6 @@ llm -m zai-glm-4.5v --image photo.jpg "Describe this image"
 llm -m zai-glm-4-32b "Analyze this long document"
 ```
 
-### Z.ai Coder (zai-coder)
-- **Description**: Specialized coding model
-- **Aliases**: `coder`, `zai-coder-llm`
-- **Streaming**: Yes
-- **Max Tokens**: 4096 (default)
-
-```bash
-llm -m zai-coder "Write a Python function to sort a list"
-```
 
 ## Usage Examples
 
@@ -133,15 +150,6 @@ llm -m zai-glm-4.5v --image cat.jpg "What's in this image?"
 llm -m zai-glm-4.5v --image img1.jpg --image img2.jpg "Compare these images"
 ```
 
-### Coding Assistant
-
-```bash
-# Use the specialized coder model
-llm -m zai-coder "Write a REST API in Python using FastAPI"
-
-# Code review
-llm -m zai-coder --temp 0.2 < code.py "Review this code for bugs and improvements"
-```
 
 ### Large Context Processing
 
@@ -192,37 +200,8 @@ Output:
 zai-glm-4.6        Z.ai: zai-glm-4.6
 zai-glm-4.5v       Z.ai: zai-glm-4.5v
 zai-glm-4-32b      Z.ai: zai-glm-4-32b
-zai-coder          Z.ai: zai-coder
 ```
 
-## API Key Setup
-
-### Temporary Setup (current session)
-
-```bash
-export ZAI_API_KEY="your-api-key-here"
-```
-
-### Persistent Setup
-
-Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
-
-```bash
-echo 'export ZAI_API_KEY="your-api-key-here"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-### Windows Setup
-
-```cmd
-set ZAI_API_KEY=your-api-key-here
-```
-
-Or for persistent setup in PowerShell:
-
-```powershell
-[System.Environment]::SetEnvironmentVariable('ZAI_API_KEY', 'your-api-key-here', 'User')
-```
 
 ## Troubleshooting
 
@@ -231,7 +210,8 @@ Or for persistent setup in PowerShell:
 ValueError: Invalid Z.ai API key
 ```
 - Verify your API key is correct
-- Check that the `ZAI_API_KEY` environment variable is set
+- Check that you've set the key using `llm keys set zai` or the `ZAI_API_KEY` environment variable
+- If using stored keys, verify the key is set: `llm keys list`
 
 ### Rate Limiting
 ```
@@ -257,47 +237,397 @@ ValueError: Z.ai API error: Model not found
 
 ## Development
 
-### Setup Development Environment
+This section provides a comprehensive guide for developing, testing, and managing the llm-zai plugin from source code.
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+- git
+- Z.ai API key (for testing)
+
+### 1. Build from Source
+
+#### Clone the Repository
 
 ```bash
-git clone https://github.com/simonw/llm-zai
+# Clone the repository
+git clone https://github.com/divsmith/llm-zai.git
 cd llm-zai
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Or your fork if you're contributing
+git clone https://github.com/YOUR_USERNAME/llm-zai.git
+cd llm-zai
+```
 
-# Install in development mode
+#### Set Up Development Environment
+
+```bash
+# Create a dedicated virtual environment
+python -m venv llm-zai-dev
+
+# Activate the virtual environment
+# On macOS/Linux:
+source llm-zai-dev/bin/activate
+# On Windows:
+llm-zai-dev\Scripts\activate
+
+# Upgrade pip to the latest version
+pip install --upgrade pip
+```
+
+#### Install Dependencies
+
+```bash
+# Install the plugin in development mode (editable)
+pip install -e .
+
+# Install development dependencies (testing, linting, etc.)
 pip install -e .[test]
 
-# Run tests
-pytest
+# Alternatively, install all dependencies manually
+pip install llm httpx pydantic pytest pytest-asyncio black flake8 mypy
 ```
 
-### Running Tests
+### 2. Validate the Installation
+
+#### Check Plugin Registration
 
 ```bash
-# Run all tests
-pytest
+# Verify the plugin is recognized by LLM
+python -c "import llm; llm.load_plugins(); print('✅ Plugin loaded successfully')"
 
-# Run with coverage
-pytest --cov=llm_zai
-
-# Run specific test
-pytest test_llm_zai.py::TestZaiChat::test_model_init -v
+# List available models to verify registration
+llm models | grep zai
 ```
 
-### Code Quality
+Expected output:
+```
+zai-glm-4.6        Z.ai: zai-glm-4.6
+zai-glm-4.5v       Z.ai: zai-glm-4.5v
+zai-glm-4-32b      Z.ai: zai-glm-4-32b
+zai-coder          Z.ai: zai-coder
+```
+
+#### Test Import
 
 ```bash
-# Format code
-black llm_zai.py test_llm_zai.py
+# Test importing the plugin modules
+python -c "
+from llm_zai import ZaiChat, AsyncZaiChat, ZaiOptions, _Shared
+print('✅ All imports successful')
+print('✅ ZaiChat class available')
+print('✅ AsyncZaiChat class available')
+print('✅ ZaiOptions class available')
+print('✅ _Shared utilities available')
+"
+```
 
-# Lint code
-flake8 llm_zai.py test_llm_zai.py
+### 3. Configure for Development
 
-# Type checking
+#### Set Up API Key for Testing
+
+```bash
+# Method 1: Use LLM's native secrets (Recommended)
+llm keys set zai
+# Enter your API key when prompted
+
+# Method 2: Environment variable (fallback for testing)
+export ZAI_API_KEY="your-api-key-here"
+```
+
+#### Verify API Key Setup
+
+```bash
+# Test the secrets management
+python -c "
+from llm_zai import _Shared
+try:
+    headers = _Shared.get_headers()
+    print('✅ API key configuration works')
+    print(f'Authorization header: {headers[\"Authorization\"][:20]}...')
+except ValueError as e:
+    print(f'❌ API key issue: {e}')
+"
+```
+
+### 4. Run Tests
+
+#### Run All Tests
+
+```bash
+# Run the complete test suite
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage report
+pytest --cov=llm_zai --cov-report=html
+```
+
+#### Run Specific Tests
+
+```bash
+# Run tests for specific classes
+pytest test_llm_zai.py::TestZaiOptions -v
+pytest test_llm_zai.py::TestShared -v
+pytest test_llm_zai.py::TestZaiChat -v
+
+# Run a single test
+pytest test_llm_zai.py::TestShared::test_get_headers -v
+
+# Run only async tests
+pytest -m asyncio
+```
+
+#### Test Specific Functionality
+
+```bash
+# Test secrets management
+python -c "
+from unittest.mock import patch
+from llm_zai import _Shared
+
+with patch('llm.get_key') as mock_get_key:
+    mock_get_key.return_value = 'test-key-123'
+    api_key = _Shared.get_api_key()
+    headers = _Shared.get_headers()
+    print(f'✅ API key: {api_key}')
+    print(f'✅ Headers: {headers}')
+"
+```
+
+### 5. Use the Plugin in Development
+
+#### Basic Usage Tests
+
+```bash
+# Test basic functionality (requires valid API key)
+llm -m zai-glm-4.6 "Hello, can you respond with just 'Test successful'?"
+
+# Test with options
+llm -m zai-glm-4.6 --temp 0.5 --max-tokens 50 "What is 2+2?"
+
+# Test async model
+llm -m zai-glm-4.6 "Testing async sync model"
+```
+
+#### Test Error Handling
+
+```bash
+# Test with invalid key (should fail gracefully)
+llm --key "invalid-key" -m zai-glm-4.6 "This should fail"
+
+# Test without key (should show helpful error)
+llm keys remove zai 2>/dev/null || true
+llm -m zai-glm-4.6 "This should fail with clear error message"
+```
+
+### 6. Code Quality and Development Tools
+
+#### Code Formatting
+
+```bash
+# Format all Python files
+black llm_zai.py test_llm_zai.py __init__.py
+
+# Check formatting without making changes
+black --check llm_zai.py test_llm_zai.py __init__.py
+```
+
+#### Linting
+
+```bash
+# Run flake8 linter
+flake8 llm_zai.py test_llm_zai.py __init__.py
+
+# Run with specific configuration
+flake8 --max-line-length=100 --ignore=E203,W503 llm_zai.py
+```
+
+#### Type Checking
+
+```bash
+# Run mypy type checker
 mypy llm_zai.py
+
+# Run with strict checking
+mypy --strict llm_zai.py
+```
+
+#### Security Checks
+
+```bash
+# Install bandit for security checks
+pip install bandit
+
+# Run security analysis
+bandit -r llm_zai.py
+
+# Check for common security issues
+bandit -r . -f json -o security-report.json
+```
+
+### 7. Build and Package
+
+#### Build Distribution Packages
+
+```bash
+# Install build tools
+pip install build twine
+
+# Build source and wheel distributions
+python -m build
+
+# Check the generated packages
+ls -la dist/
+```
+
+#### Validate Package
+
+```bash
+# Check package integrity
+twine check dist/*
+
+# Test installing from local package
+pip uninstall llm-zai -y
+pip install dist/llm_zai-0.1.0-py3-none-any.whl
+
+# Verify installation
+llm models | grep zai
+```
+
+### 8. Development Workflow
+
+#### Make Changes and Test
+
+```bash
+# 1. Make your changes to the code
+# Edit llm_zai.py, test_llm_zai.py, etc.
+
+# 2. Run tests to ensure nothing is broken
+pytest -v
+
+# 3. Run specific tests for changed functionality
+pytest test_llm_zai.py::TestShared -v
+
+# 4. Test manually with LLM
+llm -m zai-glm-4.6 "Test your changes"
+
+# 5. Check code quality
+black --check .
+flake8 .
+mypy llm_zai.py
+```
+
+#### Debug Common Issues
+
+```bash
+# Check if plugin is loaded
+python -c "
+import llm
+try:
+    llm.load_plugins()
+    from llm_zai import ZaiChat
+    print('✅ Plugin loaded successfully')
+except Exception as e:
+    print(f'❌ Plugin loading failed: {e}')
+"
+
+# Check API key configuration
+python -c "
+from llm_zai import _Shared
+import llm
+try:
+    key = llm.get_key(alias='zai', env='ZAI_API_KEY')
+    if key:
+        print('✅ API key found')
+    else:
+        print('❌ No API key found')
+except Exception as e:
+    print(f'❌ Error checking API key: {e}')
+"
+```
+
+### 9. Remove/Clean Up Development Environment
+
+#### Remove Development Installation
+
+```bash
+# Deactivate virtual environment
+deactivate
+
+# Remove the virtual environment directory
+rm -rf llm-zai-dev
+
+# Uninstall the plugin if installed globally
+pip uninstall llm-zai -y
+
+# Remove any stored API keys
+llm keys remove zai
+
+```
+
+#### Clean Build Artifacts
+
+```bash
+# Remove build directories
+rm -rf build/
+rm -rf dist/
+rm -rf *.egg-info/
+
+# Remove cache files
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -type f -name "*.pyc" -delete
+find . -type f -name "*.pyo" -delete
+
+# Remove coverage files
+rm -rf htmlcov/
+rm -f .coverage
+rm -f coverage.xml
+```
+
+### 10. Development Tips
+
+#### Useful Commands
+
+```bash
+# Quick test reload
+pip install -e . && python -c "import llm; llm.load_plugins(); print('Reloaded')"
+
+# Test specific model
+llm -m zai-glm-4.6 "Quick test"
+
+# Check what models are available
+llm models
+
+# List stored keys
+llm keys list
+
+# Test secrets management
+python -c "import llm; print(llm.get_key(alias='zai', env='ZAI_API_KEY'))"
+```
+
+#### Common Development Tasks
+
+```bash
+# Add a new model
+# 1. Edit llm_zai.py - add model to register_models()
+# 2. Add tests in test_llm_zai.py
+# 3. Update documentation in README.md
+# 4. Run tests: pytest -v
+# 5. Test manually: llm -m new-model "test"
+
+# Debug API issues
+# 1. Check API key: llm keys list
+# 2. Test API manually: curl -H "Authorization: Bearer $ZAI_API_KEY" https://api.z.ai/api/paas/v4/models
+# 3. Check plugin code: look at _Shared.get_headers()
+
+# Update dependencies
+# 1. Edit pyproject.toml
+# 2. pip install -e .
+# 3. Test: pytest -v
 ```
 
 ## Contributing
@@ -317,6 +647,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Support
 
-- For issues with this plugin, please [open an issue on GitHub](https://github.com/simonw/llm-zai/issues)
+- For issues with this plugin, please [open an issue on GitHub](https://github.com/divsmith/llm-zai/issues)
 - For Z.ai API issues, contact [Z.ai support](https://z.ai/support)
 - For LLM tool issues, see the [LLM documentation](https://llm.datasette.io/)

@@ -40,13 +40,15 @@ test = [
 zai = "llm_zai:register_models"
 
 [project.urls]
-Homepage = "https://github.com/simonw/llm-zai"
-Repository = "https://github.com/simonw/llm-zai"
-Issues = "https://github.com/simonw/llm-zai/issues"
+Homepage = "https://github.com/divsmith/llm-zai"
+Repository = "https://github.com/divsmith/llm-zai"
+Issues = "https://github.com/divsmith/llm-zai/issues"
+
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["llm_zai*"]
+exclude = ["test_llm_zai*"]
 
 [tool.black]
 line-length = 88

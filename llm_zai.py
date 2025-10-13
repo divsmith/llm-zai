@@ -275,14 +275,4 @@ def register_models(register):
         default_max_tokens=8192,
     )
 
-    # Z.ai Coder model (assuming it's available)
-    register(
-        ZaiChat("zai-coder"),
-        AsyncZaiChat("zai-coder"),
-        aliases=["coder", "zai-coder-llm"],
-        can_stream=False,  # Disabled for now
-        supports_tools=False,
-        supports_images=False,
-        supports_pdf=False,
-        default_max_tokens=4096,
-    )
+    

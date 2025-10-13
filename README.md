@@ -31,9 +31,9 @@ llm keys set zai
 
 This method is more secure as the key is stored encrypted and only used by the LLM tool.
 
-### Method 2: Environment Variable (Legacy)
+### Method 2: Environment Variable (Fallback)
 
-You can also set it as an environment variable:
+As a fallback, you can still use an environment variable:
 
 ```bash
 export ZAI_API_KEY="your-api-key-here"
@@ -87,15 +87,6 @@ llm -m zai-glm-4.5v --image photo.jpg "Describe this image"
 llm -m zai-glm-4-32b "Analyze this long document"
 ```
 
-### Z.ai Coder (zai-coder)
-- **Description**: Specialized coding model
-- **Aliases**: `coder`, `zai-coder-llm`
-- **Streaming**: Yes
-- **Max Tokens**: 4096 (default)
-
-```bash
-llm -m zai-coder "Write a Python function to sort a list"
-```
 
 ## Usage Examples
 
@@ -129,15 +120,6 @@ llm -m zai-glm-4.5v --image cat.jpg "What's in this image?"
 llm -m zai-glm-4.5v --image img1.jpg --image img2.jpg "Compare these images"
 ```
 
-### Coding Assistant
-
-```bash
-# Use the specialized coder model
-llm -m zai-coder "Write a REST API in Python using FastAPI"
-
-# Code review
-llm -m zai-coder --temp 0.2 < code.py "Review this code for bugs and improvements"
-```
 
 ### Large Context Processing
 
@@ -188,37 +170,8 @@ Output:
 zai-glm-4.6        Z.ai: zai-glm-4.6
 zai-glm-4.5v       Z.ai: zai-glm-4.5v
 zai-glm-4-32b      Z.ai: zai-glm-4-32b
-zai-coder          Z.ai: zai-coder
 ```
 
-## API Key Setup
-
-### Temporary Setup (current session)
-
-```bash
-export ZAI_API_KEY="your-api-key-here"
-```
-
-### Persistent Setup
-
-Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
-
-```bash
-echo 'export ZAI_API_KEY="your-api-key-here"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-### Windows Setup
-
-```cmd
-set ZAI_API_KEY=your-api-key-here
-```
-
-Or for persistent setup in PowerShell:
-
-```powershell
-[System.Environment]::SetEnvironmentVariable('ZAI_API_KEY', 'your-api-key-here', 'User')
-```
 
 ## Troubleshooting
 
@@ -269,7 +222,7 @@ This section provides a comprehensive guide for developing, testing, and managin
 
 ```bash
 # Clone the repository
-git clone https://github.com/simonw/llm-zai.git
+git clone https://github.com/divsmith/llm-zai.git
 cd llm-zai
 
 # Or your fork if you're contributing
@@ -349,12 +302,8 @@ print('✅ _Shared utilities available')
 llm keys set zai
 # Enter your API key when prompted
 
-# Method 2: Environment variable (for testing only)
+# Method 2: Environment variable (fallback for testing)
 export ZAI_API_KEY="your-api-key-here"
-
-# Method 3: Create a .env file for development
-echo "ZAI_API_KEY=your-api-key-here" > .env
-echo ".env" >> .gitignore  # Add to gitignore
 ```
 
 #### Verify API Key Setup
@@ -441,7 +390,6 @@ llm -m zai-glm-4.6 "Testing async sync model"
 llm --key "invalid-key" -m zai-glm-4.6 "This should fail"
 
 # Test without key (should show helpful error)
-unset ZAI_API_KEY
 llm keys remove zai 2>/dev/null || true
 llm -m zai-glm-4.6 "This should fail with clear error message"
 ```
@@ -589,8 +537,6 @@ pip uninstall llm-zai -y
 # Remove any stored API keys
 llm keys remove zai
 
-# Clear environment variables
-unset ZAI_API_KEY
 ```
 
 #### Clean Build Artifacts
@@ -671,6 +617,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Support
 
-- For issues with this plugin, please [open an issue on GitHub](https://github.com/simonw/llm-zai/issues)
+- For issues with this plugin, please [open an issue on GitHub](https://github.com/divsmith/llm-zai/issues)
 - For Z.ai API issues, contact [Z.ai support](https://z.ai/support)
 - For LLM tool issues, see the [LLM documentation](https://llm.datasette.io/)
