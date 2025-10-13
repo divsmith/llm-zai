@@ -1,7 +1,5 @@
 """LLM plugin for Z.ai's GLM models."""
 
-import os
-import json
 import llm
 import httpx
 from typing import Optional, Dict, Any, List
@@ -38,27 +36,6 @@ class ZaiOptions(llm.Options):
     )
 
 
-class _Shared:
-    """Shared configuration for Z.ai models."""
-
-    @classmethod
-    def get_api_key(cls, key=None):
-        """Get the API key using LLM's native secrets management."""
-        return llm.get_key(key, alias="zai", env="ZAI_API_KEY")
-
-    @classmethod
-    def get_headers(cls, key=None):
-        """Get HTTP headers for API requests."""
-        api_key = cls.get_api_key(key)
-        if not api_key:
-            raise ValueError("API key required. Use 'llm keys set zai' or set ZAI_API_KEY environment variable.")
-
-        return {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
-
 class ZaiChat(llm.KeyModel):
     """Synchronous Z.ai chat model."""
 
@@ -72,6 +49,21 @@ class ZaiChat(llm.KeyModel):
 
     def __str__(self):
         return f"Z.ai: {self.model_id}"
+
+    def _get_api_key(self, key: Optional[str] = None) -> str:
+        """Get the API key using LLM's native secrets management."""
+        api_key = llm.get_key(key, alias="zai", env="ZAI_API_KEY")
+        if not api_key:
+            raise ValueError("API key required. Use 'llm keys set zai' or set ZAI_API_KEY environment variable.")
+        return api_key
+
+    def _get_headers(self, key: Optional[str] = None) -> Dict[str, str]:
+        """Get HTTP headers for API requests."""
+        api_key = self._get_api_key(key)
+        return {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
 
     def build_messages(self, prompt: llm.Prompt, conversation: llm.Conversation) -> List[Dict[str, Any]]:
         """Build messages for API request."""
@@ -105,7 +97,7 @@ class ZaiChat(llm.KeyModel):
         try:
             response = httpx.post(
                 f"{self.api_base}/chat/completions",
-                headers=self.get_headers(key),
+                headers=self._get_headers(key),
                 json=request_data,
                 timeout=60.0
             )
@@ -165,6 +157,21 @@ class AsyncZaiChat(llm.AsyncKeyModel):
     def __str__(self):
         return f"Async Z.ai: {self.model_id}"
 
+    def _get_api_key(self, key: Optional[str] = None) -> str:
+        """Get the API key using LLM's native secrets management."""
+        api_key = llm.get_key(key, alias="zai", env="ZAI_API_KEY")
+        if not api_key:
+            raise ValueError("API key required. Use 'llm keys set zai' or set ZAI_API_KEY environment variable.")
+        return api_key
+
+    def _get_headers(self, key: Optional[str] = None) -> Dict[str, str]:
+        """Get HTTP headers for API requests."""
+        api_key = self._get_api_key(key)
+        return {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
     def build_messages(self, prompt: llm.Prompt, conversation: llm.AsyncConversation) -> List[Dict[str, Any]]:
         """Build messages for API request."""
         messages = []
@@ -190,7 +197,7 @@ class AsyncZaiChat(llm.AsyncKeyModel):
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     f"{self.api_base}/chat/completions",
-                    headers=self.get_headers(key),
+                    headers=self._get_headers(key),
                     json=request_data
                 )
                 response.raise_for_status()
