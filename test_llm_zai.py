@@ -1,8 +1,10 @@
 """Tests for llm-zai plugin."""
 
+import os
 import json
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+import httpx
 import llm
 from llm_zai import ZaiChat, AsyncZaiChat, ZaiOptions, _Shared
 
@@ -76,30 +78,46 @@ class TestZaiOptions:
 class TestShared:
     """Test _Shared configuration class."""
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
-    def test_get_api_key_from_env(self):
-        """Test getting API key from environment."""
+    @patch('llm.get_key')
+    def test_get_api_key_with_stored_key(self, mock_get_key):
+        """Test getting API key from LLM's stored keys."""
+        mock_get_key.return_value = 'test-key-123'
         api_key = _Shared.get_api_key()
         assert api_key == 'test-key-123'
+        mock_get_key.assert_called_once_with(None, alias='zai', env='ZAI_API_KEY')
 
-    @patch.dict(os.environ, {}, clear=True)
-    def test_get_api_key_missing(self):
+    @patch('llm.get_key')
+    def test_get_api_key_with_explicit_key(self, mock_get_key):
+        """Test getting API key with explicit key parameter."""
+        mock_get_key.return_value = 'explicit-key-456'
+        api_key = _Shared.get_api_key('explicit-key-456')
+        assert api_key == 'explicit-key-456'
+        mock_get_key.assert_called_once_with('explicit-key-456', alias='zai', env='ZAI_API_KEY')
+
+    @patch('llm.get_key')
+    def test_get_api_key_missing(self, mock_get_key):
         """Test getting API key when not set."""
+        mock_get_key.return_value = None
         api_key = _Shared.get_api_key()
         assert api_key is None
+        mock_get_key.assert_called_once_with(None, alias='zai', env='ZAI_API_KEY')
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
-    def test_get_headers(self):
+    @patch('llm.get_key')
+    def test_get_headers(self, mock_get_key):
         """Test getting HTTP headers."""
+        mock_get_key.return_value = 'test-key-123'
         headers = _Shared.get_headers()
         assert headers['Authorization'] == 'Bearer test-key-123'
         assert headers['Content-Type'] == 'application/json'
+        mock_get_key.assert_called_once_with(None, alias='zai', env='ZAI_API_KEY')
 
-    @patch.dict(os.environ, {}, clear=True)
-    def test_get_headers_missing_key(self):
+    @patch('llm.get_key')
+    def test_get_headers_missing_key(self, mock_get_key):
         """Test getting headers when API key is missing."""
+        mock_get_key.return_value = None
         with pytest.raises(ValueError, match="API key required"):
             _Shared.get_headers()
+        mock_get_key.assert_called_once_with(None, alias='zai', env='ZAI_API_KEY')
 
 
 class TestZaiChat:
@@ -163,9 +181,9 @@ class TestZaiChat:
 
         assert converted == expected
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
+    @patch('llm.get_key')
     @patch('httpx.post')
-    def test_successful_request(self, mock_post):
+    def test_successful_request(self, mock_post, mock_get_key):
         """Test successful API request."""
         # Mock successful response
         mock_response = Mock()
@@ -174,6 +192,7 @@ class TestZaiChat:
             "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25}
         }
         mock_post.return_value = mock_response
+        mock_get_key.return_value = 'test-key-123'
 
         messages = [{"role": "user", "content": "Hello"}]
         options = {"temperature": 0.7}
@@ -183,67 +202,72 @@ class TestZaiChat:
         assert result["choices"][0]["message"]["content"] == "Hello! How can I help you?"
         mock_post.assert_called_once()
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
+    @patch('llm.get_key')
     @patch('httpx.post')
-    def test_authentication_error(self, mock_post):
+    def test_authentication_error(self, mock_post, mock_get_key):
         """Test authentication error handling."""
         mock_response = Mock()
         mock_response.status_code = 401
         mock_response.raise_for_status.side_effect = Mock(
-            side_effect=llm.httpx.HTTPStatusError("401", request=Mock(), response=mock_response)
+            side_effect=httpx.HTTPStatusError("401", request=Mock(), response=mock_response)
         )
         mock_post.return_value = mock_response
+        mock_get_key.return_value = 'test-key-123'
 
         messages = [{"role": "user", "content": "Hello"}]
 
         with pytest.raises(ValueError, match="Invalid Z.ai API key"):
             self.model._make_request(messages, {})
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
+    @patch('llm.get_key')
     @patch('httpx.post')
-    def test_rate_limit_error(self, mock_post):
+    def test_rate_limit_error(self, mock_post, mock_get_key):
         """Test rate limit error handling."""
         mock_response = Mock()
         mock_response.status_code = 429
         mock_response.raise_for_status.side_effect = Mock(
-            side_effect=llm.httpx.HTTPStatusError("429", request=Mock(), response=mock_response)
+            side_effect=httpx.HTTPStatusError("429", request=Mock(), response=mock_response)
         )
         mock_post.return_value = mock_response
+        mock_get_key.return_value = 'test-key-123'
 
         messages = [{"role": "user", "content": "Hello"}]
 
         with pytest.raises(ValueError, match="Rate limit exceeded"):
             self.model._make_request(messages, {})
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
+    @patch('llm.get_key')
     @patch('httpx.post')
-    def test_server_error(self, mock_post):
+    def test_server_error(self, mock_post, mock_get_key):
         """Test server error handling."""
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.raise_for_status.side_effect = Mock(
-            side_effect=llm.httpx.HTTPStatusError("500", request=Mock(), response=mock_response)
+            side_effect=httpx.HTTPStatusError("500", request=Mock(), response=mock_response)
         )
         mock_post.return_value = mock_response
+        mock_get_key.return_value = 'test-key-123'
 
         messages = [{"role": "user", "content": "Hello"}]
 
         with pytest.raises(ValueError, match="Z.ai server error: 500"):
             self.model._make_request(messages, {})
 
+    @patch('llm.get_key')
     @patch('httpx.post')
-    def test_network_error(self, mock_post):
+    def test_network_error(self, mock_post, mock_get_key):
         """Test network error handling."""
-        mock_post.side_effect = llm.httpx.RequestError("Network error")
+        mock_post.side_effect = httpx.RequestError("Network error")
+        mock_get_key.return_value = 'test-key-123'
 
         messages = [{"role": "user", "content": "Hello"}]
 
         with pytest.raises(ValueError, match="Network error connecting to Z.ai"):
             self.model._make_request(messages, {})
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
+    @patch('llm.get_key')
     @patch('httpx.post')
-    def test_call_sync(self, mock_post):
+    def test_call_sync(self, mock_post, mock_get_key):
         """Test synchronous model call."""
         # Mock successful response
         mock_response = Mock()
@@ -252,6 +276,7 @@ class TestZaiChat:
             "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25}
         }
         mock_post.return_value = mock_response
+        mock_get_key.return_value = 'test-key-123'
 
         # Create mock prompt
         prompt = Mock()
@@ -285,8 +310,8 @@ class TestAsyncZaiChat:
         assert "Async Z.ai: zai-glm-4.6" in str_repr
 
     @pytest.mark.asyncio
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
-    async def test_async_successful_request(self):
+    @patch('llm.get_key')
+    async def test_async_successful_request(self, mock_get_key):
         """Test successful async API request."""
         # Mock successful response
         mock_response = Mock()
@@ -294,6 +319,7 @@ class TestAsyncZaiChat:
             "choices": [{"message": {"content": "Hello! How can I help you?"}}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25}
         }
+        mock_get_key.return_value = 'test-key-123'
 
         mock_client = Mock()
         mock_client.post.return_value = mock_response
@@ -310,8 +336,8 @@ class TestAsyncZaiChat:
             mock_client.post.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
-    async def test_async_call(self):
+    @patch('llm.get_key')
+    async def test_async_call(self, mock_get_key):
         """Test asynchronous model call."""
         # Mock successful response
         mock_response = Mock()
@@ -319,6 +345,7 @@ class TestAsyncZaiChat:
             "choices": [{"message": {"content": "Hello! How can I help you?"}}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25}
         }
+        mock_get_key.return_value = 'test-key-123'
 
         mock_client = Mock()
         mock_client.post.return_value = mock_response
@@ -439,9 +466,11 @@ class TestStreamingResponse:
         """Set up test fixtures."""
         self.model = ZaiChat("zai-glm-4.6")
 
-    @patch.dict(os.environ, {'ZAI_API_KEY': 'test-key-123'})
-    def test_streaming_response_format(self):
+    @patch('llm.get_key')
+    def test_streaming_response_format(self, mock_get_key):
         """Test streaming response data parsing."""
+        mock_get_key.return_value = 'test-key-123'
+
         # Mock streaming response data
         stream_lines = [
             "data: {\"choices\": [{\"delta\": {\"content\": \"Hello\"}}]}",

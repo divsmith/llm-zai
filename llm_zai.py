@@ -41,20 +41,17 @@ class ZaiOptions(llm.Options):
 class _Shared:
     """Shared configuration for Z.ai models."""
 
-    needs_key = "zai"
-    key_env_var = "ZAI_API_KEY"
+    @classmethod
+    def get_api_key(cls, key=None):
+        """Get the API key using LLM's native secrets management."""
+        return llm.get_key(key, alias="zai", env="ZAI_API_KEY")
 
     @classmethod
-    def get_api_key(cls):
-        """Get the API key from environment."""
-        return os.environ.get(cls.key_env_var)
-
-    @classmethod
-    def get_headers(cls):
+    def get_headers(cls, key=None):
         """Get HTTP headers for API requests."""
-        api_key = cls.get_api_key()
+        api_key = cls.get_api_key(key)
         if not api_key:
-            raise ValueError(f"API key required. Set {cls.key_env_var} environment variable.")
+            raise ValueError("API key required. Use 'llm keys set zai' or set ZAI_API_KEY environment variable.")
 
         return {
             "Authorization": f"Bearer {api_key}",
@@ -97,7 +94,7 @@ class ZaiChat(llm.KeyModel):
 
         return messages
 
-    def _make_request(self, messages: List[Dict[str, Any]], options: Dict[str, Any]) -> Dict[str, Any]:
+    def _make_request(self, messages: List[Dict[str, Any]], options: Dict[str, Any], key: str = None) -> Dict[str, Any]:
         """Make API request to Z.ai."""
         request_data = {
             "model": self.model_id.replace("zai-", ""),  # Remove "zai-" prefix
@@ -108,7 +105,7 @@ class ZaiChat(llm.KeyModel):
         try:
             response = httpx.post(
                 f"{self.api_base}/chat/completions",
-                headers=self.get_headers(),
+                headers=self.get_headers(key),
                 json=request_data,
                 timeout=60.0
             )
@@ -128,7 +125,7 @@ class ZaiChat(llm.KeyModel):
         except httpx.RequestError as e:
             raise ValueError(f"Network error connecting to Z.ai: {str(e)}")
 
-    def execute(self, prompt: llm.Prompt, stream: bool = False, conversation: llm.Conversation = None, **kwargs) -> llm.Response:
+    def execute(self, prompt: llm.Prompt, stream: bool = False, conversation: llm.Conversation = None, key: str = None, **kwargs) -> llm.Response:
         """Generate a response from the model."""
         messages = self.build_messages(prompt, conversation or llm.Conversation())
         options = ZaiOptions(**kwargs).dict(exclude_unset=True)
@@ -136,7 +133,7 @@ class ZaiChat(llm.KeyModel):
         # Remove stream option for now
         request_options = {k: v for k, v in options.items() if k != "stream"}
 
-        response_data = self._make_request(messages, request_options)
+        response_data = self._make_request(messages, request_options, key)
 
         # Extract response text and usage
         content = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -181,7 +178,7 @@ class AsyncZaiChat(llm.AsyncKeyModel):
 
         return messages
 
-    async def _make_request(self, messages: List[Dict[str, Any]], options: Dict[str, Any]) -> Dict[str, Any]:
+    async def _make_request(self, messages: List[Dict[str, Any]], options: Dict[str, Any], key: str = None) -> Dict[str, Any]:
         """Make async API request to Z.ai."""
         request_data = {
             "model": self.model_id.replace("zai-", ""),  # Remove "zai-" prefix
@@ -193,7 +190,7 @@ class AsyncZaiChat(llm.AsyncKeyModel):
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     f"{self.api_base}/chat/completions",
-                    headers=self.get_headers(),
+                    headers=self.get_headers(key),
                     json=request_data
                 )
                 response.raise_for_status()
@@ -212,7 +209,7 @@ class AsyncZaiChat(llm.AsyncKeyModel):
         except httpx.RequestError as e:
             raise ValueError(f"Network error connecting to Z.ai: {str(e)}")
 
-    async def execute(self, prompt: llm.Prompt, stream: bool = False, conversation: llm.AsyncConversation = None, **kwargs) -> llm.Response:
+    async def execute(self, prompt: llm.Prompt, stream: bool = False, conversation: llm.AsyncConversation = None, key: str = None, **kwargs) -> llm.Response:
         """Generate an async response from the model."""
         messages = self.build_messages(prompt, conversation or llm.AsyncConversation())
         options = ZaiOptions(**kwargs).dict(exclude_unset=True)
@@ -220,7 +217,7 @@ class AsyncZaiChat(llm.AsyncKeyModel):
         # Remove stream option for now
         request_options = {k: v for k, v in options.items() if k != "stream"}
 
-        response_data = await self._make_request(messages, request_options)
+        response_data = await self._make_request(messages, request_options, key)
 
         # Extract response text and usage
         content = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")

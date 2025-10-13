@@ -18,13 +18,39 @@ pip install llm-zai
 
 ## Configuration
 
-You'll need a Z.ai API key. Set it as an environment variable:
+You'll need a Z.ai API key. You can get an API key by signing up at [Z.ai](https://z.ai/).
+
+### Method 1: Use LLM's Native Secrets Management (Recommended)
+
+Store your API key using LLM's built-in secrets management:
+
+```bash
+llm keys set zai
+# Prompt will ask for your API key
+```
+
+This method is more secure as the key is stored encrypted and only used by the LLM tool.
+
+### Method 2: Environment Variable (Legacy)
+
+You can also set it as an environment variable:
 
 ```bash
 export ZAI_API_KEY="your-api-key-here"
 ```
 
-You can get an API key by signing up at [Z.ai](https://z.ai/).
+### Method 3: Pass Key Directly
+
+Or pass the key directly with each request:
+
+```bash
+llm --key "your-api-key-here" -m zai-glm-4.6 "Your prompt here"
+```
+
+**Priority Order**: The plugin will look for API keys in this order:
+1. Key passed with `--key` option
+2. Key stored with `llm keys set zai`
+3. `ZAI_API_KEY` environment variable
 
 ## Supported Models
 
@@ -201,7 +227,8 @@ Or for persistent setup in PowerShell:
 ValueError: Invalid Z.ai API key
 ```
 - Verify your API key is correct
-- Check that the `ZAI_API_KEY` environment variable is set
+- Check that you've set the key using `llm keys set zai` or the `ZAI_API_KEY` environment variable
+- If using stored keys, verify the key is set: `llm keys list`
 
 ### Rate Limiting
 ```
