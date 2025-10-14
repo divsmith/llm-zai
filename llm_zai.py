@@ -216,54 +216,44 @@ class AsyncZaiChat(_ZaiShared, AsyncKeyModel):
             yield content
 
 
-class ZaiPlugin:
-    @hookimpl
-    def register_models(self, register):
-        """Register Z.ai models with the LLM tool."""
-
-        # GLM-4.6 - Latest text model
-        register(
-            ZaiChat("zai-glm-4.6"),
-            AsyncZaiChat("zai-glm-4.6"),
-            aliases=["glm-4.6"],
-        )
-
-        # GLM-4.5V - Vision model
-        register(
-            ZaiChat("zai-glm-4.5v"),
-            AsyncZaiChat("zai-glm-4.5v"),
-            aliases=["glm-4.5v"],
-        )
-
-        # GLM-4.5 - Standard text model
-        register(
-            ZaiChat("zai-glm-4.5"),
-            AsyncZaiChat("zai-glm-4.5"),
-            aliases=["glm-4.5"],
-        )
-
-        # GLM-4.5-Air - Lightweight text model
-        register(
-            ZaiChat("zai-glm-4.5-air"),
-            AsyncZaiChat("zai-glm-4.5-air"),
-            aliases=["glm-4.5-air"],
-        )
-
-        # GLM-4-32b-0414-128K - Large context model
-        register(
-            ZaiChat("zai-glm-4-32b"),
-            AsyncZaiChat("zai-glm-4-32b"),
-            aliases=["glm-4-32b", "glm-4-32b-0414-128k"],
-        )
-
-# Create plugin instance with __name__ attribute for compatibility
-plugin = ZaiPlugin()
-plugin.__name__ = "llm_zai"
-
-# For backward compatibility, keep the function available
+@hookimpl
 def register_models(register):
     """Register Z.ai models with the LLM tool."""
-    return plugin.register_models(register)
+
+    # GLM-4.6 - Latest text model
+    register(
+        ZaiChat("zai-glm-4.6"),
+        AsyncZaiChat("zai-glm-4.6"),
+        aliases=["glm-4.6"],
+    )
+
+    # GLM-4.5V - Vision model
+    register(
+        ZaiChat("zai-glm-4.5v"),
+        AsyncZaiChat("zai-glm-4.5v"),
+        aliases=["glm-4.5v"],
+    )
+
+    # GLM-4.5 - Standard text model
+    register(
+        ZaiChat("zai-glm-4.5"),
+        AsyncZaiChat("zai-glm-4.5"),
+        aliases=["glm-4.5"],
+    )
+
+    # GLM-4.5-Air - Lightweight text model
+    register(
+        ZaiChat("zai-glm-4.5-air"),
+        AsyncZaiChat("zai-glm-4.5-air"),
+        aliases=["glm-4.5-air"],
+    )
+
+    # GLM-4-32b-0414-128K - Large context model
+    register(
+        ZaiChat("zai-glm-4-32b"),
+        AsyncZaiChat("zai-glm-4-32b"),
+        aliases=["glm-4-32b", "glm-4-32b-0414-128k"],
+    )
 
 
-__all__ = ["ZaiChat", "AsyncZaiChat", "ZaiOptions", "register_models", "plugin"]
+__all__ = ["ZaiChat", "AsyncZaiChat", "ZaiOptions", "register_models"]

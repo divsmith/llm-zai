@@ -37,7 +37,7 @@ test = [
 ]
 
 [project.entry-points.llm]
-zai = "llm_zai:plugin"
+zai = "llm_zai"
 
 [project.urls]
 Homepage = "https://github.com/divsmith/llm-zai"
@@ -45,10 +45,6 @@ Repository = "https://github.com/divsmith/llm-zai"
 Issues = "https://github.com/divsmith/llm-zai/issues"
 
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["llm_zai*"]
-exclude = ["test_llm_zai*"]
 
 [tool.black]
 line-length = 88
