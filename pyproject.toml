@@ -37,7 +37,7 @@ test = [
 ]
 
 [project.entry-points.llm]
-zai = "llm_zai:register_models"
+zai = "llm_zai:plugin"
 
 [project.urls]
 Homepage = "https://github.com/divsmith/llm-zai"

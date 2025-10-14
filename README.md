@@ -59,7 +59,7 @@ This plugin supports the following Z.ai models:
 ### GLM-4.6 (zai-glm-4.6)
 - **Description**: Latest text generation model
 - **Aliases**: `glm-4.6`
-- **Streaming**: Yes
+- **Streaming**: No (currently disabled)
 - **Max Tokens**: 4096 (default)
 
 ```bash
@@ -69,7 +69,7 @@ llm -m zai-glm-4.6 "Explain quantum computing"
 ### GLM-4.5V (zai-glm-4.5v)
 - **Description**: Vision model with image support
 - **Aliases**: `glm-4.5v`
-- **Streaming**: Yes
+- **Streaming**: No (currently disabled)
 - **Max Tokens**: 4096 (default)
 - **Images**: Yes
 
@@ -77,10 +77,30 @@ llm -m zai-glm-4.6 "Explain quantum computing"
 llm -m zai-glm-4.5v --image photo.jpg "Describe this image"
 ```
 
+### GLM-4.5 (zai-glm-4.5)
+- **Description**: Standard text generation model
+- **Aliases**: `glm-4.5`
+- **Streaming**: No (currently disabled)
+- **Max Tokens**: 4096 (default)
+
+```bash
+llm -m zai-glm-4.5 "Explain machine learning"
+```
+
+### GLM-4.5-Air (zai-glm-4.5-air)
+- **Description**: Lightweight text generation model
+- **Aliases**: `glm-4.5-air`
+- **Streaming**: No (currently disabled)
+- **Max Tokens**: 4096 (default)
+
+```bash
+llm -m zai-glm-4.5-air "Quick text generation"
+```
+
 ### GLM-4-32b (zai-glm-4-32b)
 - **Description**: Large context model (128K tokens)
 - **Aliases**: `glm-4-32b`, `glm-4-32b-0414-128k`
-- **Streaming**: Yes
+- **Streaming**: No (currently disabled)
 - **Max Tokens**: 8192 (default)
 
 ```bash
@@ -169,6 +189,8 @@ Output:
 ```
 zai-glm-4.6        Z.ai: zai-glm-4.6
 zai-glm-4.5v       Z.ai: zai-glm-4.5v
+zai-glm-4.5        Z.ai: zai-glm-4.5
+zai-glm-4.5-air    Z.ai: zai-glm-4.5-air
 zai-glm-4-32b      Z.ai: zai-glm-4-32b
 ```
 
@@ -265,7 +287,7 @@ pip install llm httpx pydantic pytest pytest-asyncio black flake8 mypy
 
 ```bash
 # Verify the plugin is recognized by LLM
-python -c "import llm; llm.load_plugins(); print('✅ Plugin loaded successfully')"
+python -c "import llm; llm.load_plugins(); print('Plugin loaded successfully')"
 
 # List available models to verify registration
 llm models | grep zai
@@ -275,8 +297,9 @@ Expected output:
 ```
 zai-glm-4.6        Z.ai: zai-glm-4.6
 zai-glm-4.5v       Z.ai: zai-glm-4.5v
+zai-glm-4.5        Z.ai: zai-glm-4.5
+zai-glm-4.5-air    Z.ai: zai-glm-4.5-air
 zai-glm-4-32b      Z.ai: zai-glm-4-32b
-zai-coder          Z.ai: zai-coder
 ```
 
 #### Test Import
@@ -284,12 +307,11 @@ zai-coder          Z.ai: zai-coder
 ```bash
 # Test importing the plugin modules
 python -c "
-from llm_zai import ZaiChat, AsyncZaiChat, ZaiOptions, _Shared
-print('✅ All imports successful')
-print('✅ ZaiChat class available')
-print('✅ AsyncZaiChat class available')
-print('✅ ZaiOptions class available')
-print('✅ _Shared utilities available')
+from llm_zai import ZaiChat, AsyncZaiChat, ZaiOptions
+print('All imports successful')
+print('ZaiChat class available')
+print('AsyncZaiChat class available')
+print('ZaiOptions class available')
 "
 ```
 
@@ -311,13 +333,14 @@ export ZAI_API_KEY="your-api-key-here"
 ```bash
 # Test the secrets management
 python -c "
-from llm_zai import _Shared
+from llm_zai import ZaiChat
 try:
-    headers = _Shared.get_headers()
-    print('✅ API key configuration works')
-    print(f'Authorization header: {headers[\"Authorization\"][:20]}...')
+    model = ZaiChat('zai-glm-4.6')
+    api_key = model._get_api_key()
+    print('API key configuration works')
+    print(f'API key found: {bool(api_key)}')
 except ValueError as e:
-    print(f'❌ API key issue: {e}')
+    print(f'API key issue: {e}')
 "
 ```
 
@@ -357,12 +380,13 @@ pytest -m asyncio
 # Test secrets management
 python -c "
 from unittest.mock import patch
-from llm_zai import _Shared
+from llm_zai import ZaiChat
 
 with patch('llm.get_key') as mock_get_key:
     mock_get_key.return_value = 'test-key-123'
-    api_key = _Shared.get_api_key()
-    headers = _Shared.get_headers()
+    model = ZaiChat('zai-glm-4.6')
+    api_key = model._get_api_key()
+    headers = model._get_headers()
     print(f'✅ API key: {api_key}')
     print(f'✅ Headers: {headers}')
 "
@@ -400,30 +424,30 @@ llm -m zai-glm-4.6 "This should fail with clear error message"
 
 ```bash
 # Format all Python files
-black llm_zai.py test_llm_zai.py __init__.py
+black llm_zai/__init__.py test_llm_zai.py
 
 # Check formatting without making changes
-black --check llm_zai.py test_llm_zai.py __init__.py
+black --check llm_zai/__init__.py test_llm_zai.py
 ```
 
 #### Linting
 
 ```bash
 # Run flake8 linter
-flake8 llm_zai.py test_llm_zai.py __init__.py
+flake8 llm_zai/__init__.py test_llm_zai.py
 
 # Run with specific configuration
-flake8 --max-line-length=100 --ignore=E203,W503 llm_zai.py
+flake8 --max-line-length=100 --ignore=E203,W503 llm_zai/__init__.py
 ```
 
 #### Type Checking
 
 ```bash
 # Run mypy type checker
-mypy llm_zai.py
+mypy llm_zai/__init__.py
 
 # Run with strict checking
-mypy --strict llm_zai.py
+mypy --strict llm_zai/__init__.py
 ```
 
 #### Security Checks
@@ -433,7 +457,7 @@ mypy --strict llm_zai.py
 pip install bandit
 
 # Run security analysis
-bandit -r llm_zai.py
+bandit -r llm_zai/
 
 # Check for common security issues
 bandit -r . -f json -o security-report.json
@@ -474,7 +498,7 @@ llm models | grep zai
 
 ```bash
 # 1. Make your changes to the code
-# Edit llm_zai.py, test_llm_zai.py, etc.
+# Edit llm_zai/__init__.py, test_llm_zai.py, etc.
 
 # 2. Run tests to ensure nothing is broken
 pytest -v
@@ -488,7 +512,7 @@ llm -m zai-glm-4.6 "Test your changes"
 # 5. Check code quality
 black --check .
 flake8 .
-mypy llm_zai.py
+mypy llm_zai/__init__.py
 ```
 
 #### Debug Common Issues
@@ -500,23 +524,24 @@ import llm
 try:
     llm.load_plugins()
     from llm_zai import ZaiChat
-    print('✅ Plugin loaded successfully')
+    print('Plugin loaded successfully')
 except Exception as e:
-    print(f'❌ Plugin loading failed: {e}')
+    print(f'Plugin loading failed: {e}')
 "
 
 # Check API key configuration
 python -c "
-from llm_zai import _Shared
+from llm_zai import ZaiChat
 import llm
 try:
-    key = llm.get_key(alias='zai', env='ZAI_API_KEY')
+    model = ZaiChat('zai-glm-4.6')
+    key = model._get_api_key()
     if key:
-        print('✅ API key found')
+        print('API key found')
     else:
-        print('❌ No API key found')
+        print('No API key found')
 except Exception as e:
-    print(f'❌ Error checking API key: {e}')
+    print(f'Error checking API key: {e}')
 "
 ```
 
@@ -583,7 +608,7 @@ python -c "import llm; print(llm.get_key(alias='zai', env='ZAI_API_KEY'))"
 
 ```bash
 # Add a new model
-# 1. Edit llm_zai.py - add model to register_models()
+# 1. Edit llm_zai/__init__.py - add model to register_models()
 # 2. Add tests in test_llm_zai.py
 # 3. Update documentation in README.md
 # 4. Run tests: pytest -v
@@ -592,7 +617,7 @@ python -c "import llm; print(llm.get_key(alias='zai', env='ZAI_API_KEY'))"
 # Debug API issues
 # 1. Check API key: llm keys list
 # 2. Test API manually: curl -H "Authorization: Bearer $ZAI_API_KEY" https://api.z.ai/api/paas/v4/models
-# 3. Check plugin code: look at _Shared.get_headers()
+# 3. Check plugin code: look at ZaiChat._get_headers()
 
 # Update dependencies
 # 1. Edit pyproject.toml
